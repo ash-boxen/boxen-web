@@ -7,18 +7,19 @@ if [ "$0" = "/tmp/install-boxen" ]; then
 fi
 
 set +e
-OSX_VERSION_CHECK=`sw_vers | grep ProductVersion | cut -f 2 -d ':'  | egrep '10\.8'`
+OSX_VERSION=`sw_vers | grep ProductVersion | cut -f 2 -d ':'  | awk ' { print $1; } '`
 
-if [ $? != 0 ]; then
+if [ ! $(echo $OSX_VERSION | egrep '10\.8|10\.9') ]; then
     echo 'You must be on Mountain Lion or greater!'
     exit 1
 fi
 set -e
 
-if [ ! -f /usr/bin/gcc ]; then
+if [ "$OSX_VERSION" = "10.8" ] && [ ! -f /usr/bin/gcc ]; then
   printf "%s\n" $'
-You need to have Xcode with Command Line Tools installed before you can
-continue.
+
+Since you are running OS X 10.8, you will need to install Xcode and the
+Command Line Tools to continue.
 
   1. Go to the App Store and install Xcode.
   2. Start Xcode.
@@ -29,6 +30,20 @@ continue.
   exit 1
 fi
 
+if [ "$OSX_VERSION" = "10.9" ]; then
+  printf "%s\n" $'
+
+Since you are running OS X 10.9, you will need to install the Command
+Line Tools.
+
+  1. You should see a pop-up asking you to install them in a moment.
+  2. Click Install!'
+
+  until $(gcc -v); do
+    sleep 60
+  done
+fi
+
 # show the banner and wait for a response
 printf "%s" $'\e[1;32m
      #######   #######  ##     ##     ########   #######  ##     ## ######## ##    ##
@@ -37,7 +52,8 @@ printf "%s" $'\e[1;32m
     #########  #######  #########     ########  ##     ##    ###    ######   ## ## ##
     ##     ##        ## ##     ##     ##     ## ##     ##   ## ##   ##       ##  ####
     ##     ##        ## ##     ##     ##     ## ##     ##  ##   ##  ##       ##   ###
-    ##     ##  #######  ##     ##     ########   #######  ##     ## ######## ##    ##
+    ##     ##  #######  ##     ##     ########   #######  ##     ## ######## ##    ##\e[1;31m
+    <%= view.user_org.upcase if view.user_org %>
 \e[0m
     Hello! I\'m going to set up this machine for you. It might take me a bit
     of time before I\'m done, but you\'ll end up with a happy machine by the
@@ -60,7 +76,7 @@ sudo chown $USER:staff /opt/boxen
 
 if [ ! -f /opt/boxen/repo/.snapshot ]; then
   echo
-  echo "--> Grabbing code."
+  echo "--> Grabbing code and extracting. Be patient this may take a while."
 
   mkdir -p /opt/boxen/repo
   cd /opt/boxen/repo
@@ -78,7 +94,7 @@ sudo -p "    Password for sudo again: "  true
 
 cd /opt/boxen/repo
 export BOXEN_REPO_NAME=<%= view.repo_name %>
-script/boxen
+script/boxen --token <%= view.access_token %> --login <%= view.login %>
 
 cd $HOME
 
